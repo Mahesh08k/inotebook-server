@@ -1,5 +1,6 @@
 const express = require('express')
 const User = require('../models/User')
+const fetchuser = require('../middleware/fetchuser')
 const router = express.Router()
 const {body , validationResult} = require('express-validator');
 var bcrypt = require('bcryptjs');
@@ -65,9 +66,72 @@ router.post('/createuser', [
    /* Hanlde error if any occured in code */
    catch(error){
         console.log(error.message);
-        res.status(500).send('Unable to add new user')
+        res.status(500).send('Internal Server Error')
    }
     
+})
+
+/*Authenticate the user using:POST method /api/auth/login */
+router.post('/login', [
+    body('email','Enter valid Email').isEmail(),
+    body('password','Password cannot be blank ').exists()
+] , async(req,res) => {
+     /* If there are errors , return bad request and errors */
+     const errors = validationResult(req);
+     if(!errors.isEmpty()){
+         return res.status(400).json({errors:errors.array()})
+     }
+
+     /* retrive email and password , provided by user */
+     const {email,password} = req.body
+
+     /*Check if given email user exits in database */
+     try{
+        let user = await User.findOne({email})
+        if(!user){
+            return res.status(404).json({error:'Please try to login with valid Credentials'})
+        }
+
+        /* If user exits with given mail id then check if password is correct 
+           compare function takes string and hash as parameter
+           it compares user provided password and password saved in database in hash format
+        */
+        const passwordCompare = await bcrypt.compare(password, user.password)
+        if(!passwordCompare){
+            return res.status(404).json({error:'Please try to login with valid Credentials'})
+        }
+
+        /*If password is correct fetch user id to create jwt token*/
+        const payload = {
+            user:{
+                id : user.id
+            }
+        }
+
+        const jwt_token = jwt.sign(payload,JWT_SECRET)
+        res.json({jwt_token})
+
+     } catch(error){
+        console.log(error.message);
+        res.status(500).send('Internal Server Error')
+     }
+})
+
+/* Get logged in User details using POSt method /api/auth/getuser
+   this route accept middleware function fetchuser , from fetchuser function we will get the id of user
+*/
+router.post('/getuser',fetchuser, async(req,res) => {
+    try{
+        userId = req.user.id
+        /* based on id we will find that user in database and send all the data of that user
+           except password
+        */
+        const user = await User.findOne({_id:userId}).select('-password')
+        res.send(user)
+    } catch (error){
+        console.log(error.message);
+        res.status(500).send('Internal Server Error')
+    }
 })
 
 module.exports = router
