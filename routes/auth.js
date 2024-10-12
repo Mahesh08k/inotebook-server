@@ -14,7 +14,7 @@ router.post('/createuser', [
     body('email','Enter valid Email').isEmail(),
     body('password','Password must be atleast 5 character').isLength({min:5})
 ] , async(req,res) => {
-    /* We can save the user also loke this
+    /* We can save the user also like this
     console.log(req.body)
     const user = User(req.body);
     user.save()

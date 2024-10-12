@@ -1,4 +1,4 @@
-var jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'secRetSihaVeholdiNMyheartBaByijUstWannBeYourS'
 
 /* this function will following task :
